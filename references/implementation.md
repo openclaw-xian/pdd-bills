@@ -109,6 +109,23 @@ worker-export.mjs
 - 店铺清单缺失且 `discover != false` → 自动发现建清单。
 - 日期参数校验：格式、倒挂、未来日期。
 
+## 10bis. doctor（只读自检）
+
+- 触发：配置 `doctor:true` 或 `mode:"doctor"`。
+- batch-run：先跑同样的预检（root/ego/清单/日期）；通过后对每家店**串行**起一个 `mode:"doctor"` worker，输出 `DOCTOR_RESULT` JSON。
+- worker：`openShopSpace()`（同正式流程：按 profile 解析、读店铺名、必要时自动发现）→
+  - 正常区间：`setMonthRange` → 点查询 → 等结果 → 解析汇总 → 回读日期；
+  - 老区间：切导出页签 → 选日期 → **不点导出**；
+  - 不写 `.tasks.json`、不下载、不建 `_runs` 目录；
+  - 结果含 `shop/from/to/oldRange/dateValue/summary/ok`。
+- 用途：PDD 改版后先跑 doctor，能在不产生任何账单的前提下发现日历/按钮/文案失效。
+
+## 10ter. 版本 / 安装
+
+- `VERSION`：当前版本号；`CHANGELOG.md`：每次改动的日期与内容（DOM 契约或行为变了必须记）。
+- `install.ps1`：把 skill 目录装到 `~/.agents/skills/pdd-bills`，默认建 junction（单份真实文件），`-Copy` 复制，`-Force` 先备份旧目录；不做删除。
+- 分发多副本时，先比对 `VERSION` 再排查行为差异。
+
 ## 11. 维护指南（PDD 改版时改哪里）
 
 | 变的东西 | 改哪里 |

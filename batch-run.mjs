@@ -55,6 +55,7 @@ const RUN_ROOT = String(CFG.runRoot || path.join(ROOT, "_runs")).replace(/\\/g, 
 const RUNTIME = String(CFG.runtimeDir || path.join(os.tmpdir(), "pdd-bills-runtime")).replace(/\\/g, "/").replace(/\/$/, "");
 const CONCURRENCY = Math.max(1, Number(CFG.concurrency || 3));
 const MODE = CFG.mode || "auto";
+const DOCTOR = !!CFG.doctor || MODE === "doctor";
 const MAX_WAIT = Number(CFG.maxWaitSec || 45);
 const JOB_TIMEOUT_SEC = Number(CFG.jobTimeoutSec || 300);
 const cutoffIso = (() => {
@@ -178,8 +179,10 @@ const toDay = parseInt(to.slice(8, 10), 10);
 const fromPrefix = from;
 const expectValue = from + " 00:00:00 ~ " + to + " 23:59:59";
 
-await fs.mkdir(RESULT_DIR, { recursive: true });
-await fs.mkdir(LOG_DIR, { recursive: true });
+if (!DOCTOR) {
+  await fs.mkdir(RESULT_DIR, { recursive: true });
+  await fs.mkdir(LOG_DIR, { recursive: true });
+}
 await fs.mkdir(RUNTIME + "/" + RUN_ID, { recursive: true });
 
 console.log("RUN_ID=" + RUN_ID);
@@ -243,6 +246,52 @@ async function runJob(store, i, jitterMs) {
   }
   if (!result) result = { ok: false, status: "failed", error: timedOut ? "job_timeout" : "no_result_file" };
   return { shop: store.shop, profile: store.profile, result, wallSec: Number(((Date.now() - started) / 1000).toFixed(1)) };
+}
+
+// 只读自检：不导出、不写账单目录、不改 .tasks.json
+async function runDoctorJob(store, i) {
+  const job = mkJob(store);
+  job.mode = "doctor";
+  delete job.period;
+  delete job.logPath;
+  job.resultPath = path.join(os.tmpdir(), "pdd-bills-doctor-" + RUN_ID + "-" + i + ".json");
+  const dir = RUNTIME + "/" + RUN_ID + "-doctor";
+  await fs.mkdir(dir, { recursive: true }).catch(() => {});
+  const wrapper = dir + "/job-" + i + ".mjs";
+  const code = "globalThis.__JOB = " + JSON.stringify(job) + ";\nawait import('file:///" + WORKER + "');\n";
+  await fs.writeFile(wrapper, code, "utf8");
+  const started = Date.now();
+  const child = spawn(EGO, ["nodejs", "-e", "await import('file:///" + wrapper + "')"], { stdio: "ignore", windowsHide: true });
+  const timeout = setTimeout(() => { try { child.kill(); } catch (e) {} }, JOB_TIMEOUT_SEC * 1000);
+  await new Promise((resolve) => child.on("exit", resolve));
+  clearTimeout(timeout);
+  let result = null;
+  for (let k = 0; k < 10 && !result; k++) {
+    try {
+      result = JSON.parse(await fs.readFile(job.resultPath, "utf8"));
+    } catch (e) {
+      await sleep(300);
+    }
+  }
+  if (!result) result = { ok: false, status: "doctor_failed", error: "no_result_file" };
+  return { shop: store.shop, result, wallSec: Number(((Date.now() - started) / 1000).toFixed(1)) };
+}
+
+if (DOCTOR) {
+  const docResults = [];
+  for (let i = 0; i < stores.length; i++) {
+    const r = await runDoctorJob(stores[i], i);
+    docResults.push(r);
+    const s = r.result || {};
+    console.log("DOCTOR " + r.shop + " status=" + (s.status || "?") + " wall=" + r.wallSec + "s" + (s.error ? " err=" + s.error : ""));
+  }
+  const ok = docResults.every((r) => r.result && r.result.ok);
+  const out = { doctor: true, period, from, to, ok, stores: docResults };
+  const reportPath = path.join(os.tmpdir(), "pdd-bills-doctor-" + RUN_ID + ".json");
+  await fs.writeFile(reportPath, JSON.stringify(out, null, 1), "utf8").catch(() => {});
+  console.log("\nDOCTOR_RESULT=" + JSON.stringify(out, null, 1));
+  console.log("DOCTOR_REPORT=" + reportPath.replace(/\\/g, "/"));
+  process.exit(ok ? 0 : 1);
 }
 
 // 并发池 + 错峰

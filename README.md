@@ -19,6 +19,9 @@ cp -r . ~/.agents/skills/pdd-bills
 ```
 
 > Windows 可用目录联接：`mklink /J C:\Users\<你>\.agents\skills\pdd-bills <本仓库路径>`
+> 或直接跑一键脚本：`powershell -ExecutionPolicy Bypass -File .\install.ps1`（默认 junction，可 `-Copy`）
+
+版本见 [`VERSION`](VERSION)，变更见 [`CHANGELOG.md`](CHANGELOG.md)。
 
 ## 前置条件
 
@@ -44,6 +47,7 @@ node <skill目录>/batch-run.mjs <config.json>
 ```
 
 - 店铺清单 `_stores.json` 可省略（会自动扫描 ego profiles 生成）；也可以只写店铺名。
+- 先自检（只读，不导出）：`{ "doctor": true, "from": "2026-08-01", "to": "2026-08-31" }`
 - 详见 [SKILL.md](SKILL.md)：日期规则、预检、自动找店、红线、排障、维护。
 - 实现细节 / DOM 契约 / 踩坑 / 测试记录在 [references/](references/)：
 

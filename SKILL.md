@@ -62,7 +62,8 @@ node <skill目录>/batch-run.mjs <config.json>
 |---|---|
 | `only` | 只跑指定店铺，例 `["<店铺A>"]` |
 | `shops` | 同 `only`（按店铺名筛选），二选一即可 |
-| `mode` | `auto`（默认：该期已 done 则跳过，pending 则收取，否则导出）/ `collect`（只收不提交） |
+| `mode` | `auto`（默认：该期已 done 则跳过，pending 则收取，否则导出）/ `collect`（只收不提交）/ `doctor`（只读自检） |
+| `doctor` | `true` 等价于 `mode:"doctor"`：只检查环境与一次查询，不导出 |
 | `force` | `true` 强制重跑，忽略已完成标记 |
 | `concurrency` | 并发数，默认 3；店铺几十家时建议 4~6 |
 | `maxWaitSec` | 单店提交后最多等多少秒出现「下载账单」，默认 45；超时记 pending 并立即返回，不干等 |
@@ -71,6 +72,26 @@ node <skill目录>/batch-run.mjs <config.json>
 | `autoCreateRoot` | 用户确认后允许自动创建根目录（默认 false） |
 | `discover` | 是否自动扫描 ego 建/修 `_stores.json`（默认 true） |
 | `ego` / `worker` / `storesConfig` / `runRoot` / `runtimeDir` | 覆盖自动探测值，一般不用填 |
+
+## 自检 doctor（只读，不导出）
+
+```bash
+node <skill目录>/batch-run.mjs <doctor.json>
+```
+
+```json
+{ "doctor": true, "from": "2026-08-01", "to": "2026-08-31", "only": ["<店铺A>"] }
+```
+
+- 检查：ego 可用、根目录存在、店铺清单（缺则自动扫描生成）、店铺能登录并打开对账中心、日期能选中、查询能出汇总；
+- **不提交导出、不写账单目录、不改 `.tasks.json`**；
+- 正常区间会真实查询一次并回显汇总；老区间（>12 个月）只验证导出页能选日期、不提交；
+- 输出 `DOCTOR_RESULT` JSON；全部通过退出码 0，否则 1（报告文件在系统 temp）。
+
+## 版本与安装
+
+- 版本：`VERSION`；变更记录：`CHANGELOG.md`（分发多份副本时先看这两个再排查问题）。
+- `install.ps1`：一键装到 `~/.agents/skills/pdd-bills`（默认目录联接，`-Copy` 复制；`-Force` 会先备份旧目录），详见 `install.md`。
 
 ## 输出
 

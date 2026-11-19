@@ -776,14 +776,11 @@ async function updateRegistry(found) {
   return reg;
 }
 
-async function main() {
-  let entryId = null;
+async function openShopSpace() {
   let shopName = "";
-
   if (JOB.profile) {
     try {
-      entryId = await resolveSpace();
-      log("space", entryId);
+      await resolveSpace();
       await ensureBillsPage();
       shopName = await readShopName();
       actualShop = shopName;
@@ -806,8 +803,7 @@ async function main() {
     if (hit) {
       JOB.profile = hit.profile;
       await updateRegistry([hit]);
-      entryId = await resolveSpace();
-      log("space(discovered)", entryId);
+      await resolveSpace();
       await ensureBillsPage();
       shopName = await readShopName();
       actualShop = shopName;
@@ -815,7 +811,41 @@ async function main() {
     }
     if (!hit || shopName !== JOB.shop) throw new Error("shop_not_logged_in:" + JOB.shop);
   }
+  return shopName;
+}
 
+async function runDoctorMode() {
+  const shopName = await openShopSpace();
+  const cutoff = new Date();
+  cutoff.setFullYear(cutoff.getFullYear() - 1);
+  const oldRange = JOB.from <= cutoff.toISOString().slice(0, 10);
+  const out = { status: "doctor_ok", shop: shopName, from: JOB.from, to: JOB.to, oldRange };
+  if (!oldRange) {
+    await setMonthRange(page, "doctor");
+    await page.click("loc=role:button[name='查询']", { label: "doctor query" });
+    await waitQueryDone(page);
+    out.dateValue = (await readCal(page)).value;
+    const sumText = (await readSummary(page)).stats;
+    out.summary = parseSummary(sumText);
+    if (out.dateValue !== JOB.expectValue) throw new Error("doctor_date_mismatch:" + out.dateValue);
+    if (!out.summary) out.status = "doctor_warn";
+  } else {
+    await page.click("text=\"货款明细导出\"", { label: "doctor export tab" });
+    await sleep(300);
+    const init = await page.evaluate(() => {
+      const inp = [...document.querySelectorAll("input")].find((e) => e.placeholder && /开始日期/.test(e.placeholder));
+      return inp ? inp.value : null;
+    });
+    if (init !== JOB.expectValue) await setMonthRange(page, "doctor");
+    out.dateValue = (await readCal(page)).value;
+    out.note = "老区间：只验证导出页能选日期，不提交导出";
+  }
+  out.profile = JOB.profile;
+  return out;
+}
+
+async function main() {
+  const shopName = await openShopSpace();
   const tasks = await readTasks();
   const rec = tasks.tasks.find((t) => t.period === JOB.period && (t.from === undefined || t.from === JOB.from));
   const doneFile = rec && rec.status === "done" && rec.file;
@@ -832,7 +862,20 @@ async function main() {
   return await runExportFlow(tasks, rec);
 }
 
-if (JOB.mode === "discover") {
+if (JOB.mode === "doctor") {
+  let dres;
+  try {
+    dres = await runDoctorMode();
+    dres.ok = true;
+  } catch (e) {
+    dres = { ok: false, status: "doctor_failed", error: String((e && e.message) || e) };
+  }
+  await writeResult(dres);
+  try {
+    if (task) await task.finish({ keep: [] });
+  } catch (e) {}
+  console.log("WORKER_RESULT=" + JSON.stringify({ mode: "doctor", status: dres.status, shop: dres.shop }));
+} else if (JOB.mode === "discover") {
   let dres;
   try {
     const found = await discoverShops();

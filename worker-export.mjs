@@ -449,6 +449,14 @@ async function downloadBill(page) {
   return { tmp, serverFile, bytes: (await fs.stat(tmp)).size };
 }
 
+function periodLabel() {
+  const from = JOB.from.split("-").map(Number);
+  const to = JOB.to.split("-").map(Number);
+  const monthEnd = new Date(to[0], to[1], 0).getDate();
+  if (from[1] === to[1] && from[2] === 1 && to[2] === monthEnd) return to[1] + "月";
+  return from[1] + "月" + from[2] + "日-" + to[1] + "月" + to[2] + "日";
+}
+
 function friendlyCsvName() {
   const from = JOB.from.split("-").map(Number);
   const to = JOB.to.split("-").map(Number);
@@ -609,7 +617,7 @@ async function runExportFlow(tasks, rec) {
   if (!card || !card.found) {
     // 记录还没出现：记 pending
     await upsertTask(tasks, rec, { status: "pending", applyTime: null, pageSummary });
-    await hist.screenshot({ path: PERIOD_DIR + "/pending.png" }).catch(() => {});
+    await hist.screenshot({ path: PERIOD_DIR + "/" + JOB.shop + "-对账中心-" + periodLabel() + "-待生成.png" }).catch(() => {});
     return { status: "pending", note: "record_not_visible", pageSummary, sumText };
   }
   if (!card.hasDownload) {
@@ -641,7 +649,7 @@ async function runExportFlow(tasks, rec) {
     status: "done", applyTime: applyTimeText, file: zipName, csvName, sourceCsv: originalCsvName, rows: stats.rows,
     income: stats.income, expense: stats.expense, matched, size: dl.bytes, pageSummary,
   });
-  await hist.screenshot({ path: PERIOD_DIR + "/已下载.png" }).catch(() => {});
+  await hist.screenshot({ path: PERIOD_DIR + "/" + JOB.shop + "-对账中心-" + periodLabel() + ".png" }).catch(() => {});
   return {
     status: matched === false ? "mismatch" : "done",
     zip: zipPath, size: dl.bytes, rows: stats.rows,

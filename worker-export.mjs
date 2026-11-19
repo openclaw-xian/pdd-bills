@@ -454,10 +454,10 @@ function friendlyCsvName() {
   const to = JOB.to.split("-").map(Number);
   const monthEnd = new Date(to[0], to[1], 0).getDate();
   if (from[1] === to[1] && from[2] === 1 && to[2] === monthEnd) {
-    return JOB.shop + "-" + to[1] + "月.csv";
+    return JOB.shop + "-对账中心-" + to[1] + "月.csv";
   }
   const label = (mm, dd) => mm + "月" + dd + "日";
-  return JOB.shop + "-" + label(from[1], from[2]) + "-" + label(to[1], to[2]) + ".csv";
+  return JOB.shop + "-对账中心-" + label(from[1], from[2]) + "-" + label(to[1], to[2]) + ".csv";
 }
 
 function buildManifest(r) {

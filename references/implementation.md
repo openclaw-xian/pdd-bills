@@ -120,10 +120,10 @@ worker-export.mjs
   - 结果含 `shop/from/to/oldRange/dateValue/summary/ok`。
 - 用途：PDD 改版后先跑 doctor，能在不产生任何账单的前提下发现日历/按钮/文案失效。
 
-## 10ter. 版本 / 安装
+## 10ter. 版本 / 分发
 
 - `VERSION`：当前版本号；`CHANGELOG.md`：每次改动的日期与内容（DOM 契约或行为变了必须记）。
-- `install.ps1`：把 skill 目录装到 `~/.agents/skills/pdd-bills`，默认建 junction（单份真实文件），`-Copy` 复制，`-Force` 先备份旧目录；不做删除。
+- 分发：把本目录复制或目录联接到 `~/.agents/skills/pdd-bills` 即可；skill 目录本身就是安装单元，不额外提供安装脚本。
 - 分发多副本时，先比对 `VERSION` 再排查行为差异。
 
 ## 11. 维护指南（PDD 改版时改哪里）

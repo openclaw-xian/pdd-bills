@@ -88,10 +88,10 @@ node <skill目录>/batch-run.mjs <doctor.json>
 - 正常区间会真实查询一次并回显汇总；老区间（>12 个月）只验证导出页能选日期、不提交；
 - 输出 `DOCTOR_RESULT` JSON；全部通过退出码 0，否则 1（报告文件在系统 temp）。
 
-## 版本与安装
+## 版本与分发
 
 - 版本：`VERSION`；变更记录：`CHANGELOG.md`（分发多份副本时先看这两个再排查问题）。
-- `install.ps1`：一键装到 `~/.agents/skills/pdd-bills`（默认目录联接，`-Copy` 复制；`-Force` 会先备份旧目录），详见 `install.md`。
+- 安装：把本目录复制/联接成 `~/.agents/skills/pdd-bills` 即可（就是个普通 skill 目录，无需额外脚本）。
 
 ## 输出
 

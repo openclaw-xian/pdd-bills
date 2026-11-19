@@ -19,7 +19,6 @@ cp -r . ~/.agents/skills/pdd-bills
 ```
 
 > Windows 可用目录联接：`mklink /J C:\Users\<你>\.agents\skills\pdd-bills <本仓库路径>`
-> 或直接跑一键脚本：`powershell -ExecutionPolicy Bypass -File .\install.ps1`（默认 junction，可 `-Copy`）
 
 版本见 [`VERSION`](VERSION)，变更见 [`CHANGELOG.md`](CHANGELOG.md)。
 

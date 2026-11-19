@@ -91,7 +91,7 @@ worker-export.mjs
 - ZIP：`货款明细_<期间>_<导出时间>.zip`
 - CSV：`<店铺>-<月>月.csv`（整月）；`<店铺>-<起>月<日>-<止>月<日>.csv`（区间）
 - `账单信息.md`：店铺/期间/申请时间/zip/csv/平台原始文件名/行数/收支合计/日期核对/与页面汇总
-- 截图：`<店铺>-对账中心-<月>月.png`（整月）；区间用 `<起>月<日>-<止>月<日>`；pending 为 `…-待生成.png`
+- 截图：本模块**不生成截图**（货款数据以 ZIP/CSV 为准；截图只在 pdd-promo-cost 推广模块里做）
 - `.tasks.json`：每期一条（status/applyTime/file/csvName/rows/income/expense/matched/pageSummary）
 - 失败保留文件供人工核对（mismatch 不改 status 为 done）
 - 与 `pdd-promo-cost` 协作：`账单信息.md` 重写时用 `withPromoBlock()` 保留 `<!-- promo:start --> … <!-- promo:end -->` 块（推广花费），不会覆盖对方写入的数据。

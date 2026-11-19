@@ -499,6 +499,18 @@ function buildManifest(r) {
   return lines.join("\n");
 }
 
+// 重写 账单信息.md 时保留 pdd-promo-cost 注入的推广花费块
+async function withPromoBlock(manifest) {
+  try {
+    const existing = await fs.readFile(PERIOD_DIR + "/账单信息.md", "utf8");
+    const m = existing.match(/<!-- promo:start -->[\s\S]*?<!-- promo:end -->/);
+    if (m && !manifest.includes("<!-- promo:start -->")) {
+      return manifest.replace(/\s*$/,"") + "\n\n" + m[0];
+    }
+  } catch (e) {}
+  return manifest;
+}
+
 // ── 主流程 ───────────────────────────────────
 let task = null;
 let page = null;
@@ -644,7 +656,7 @@ async function runExportFlow(tasks, rec) {
     dateMin: stats.dateMin, dateMax: stats.dateMax, dateOk, matched, pageSummary: pageSummary || null,
     applyTime: applyTimeText,
   });
-  await fs.writeFile(PERIOD_DIR + "/账单信息.md", manifest, "utf8");
+  await fs.writeFile(PERIOD_DIR + "/账单信息.md", await withPromoBlock(manifest), "utf8");
   await upsertTask(tasks, rec, {
     status: "done", applyTime: applyTimeText, file: zipName, csvName, sourceCsv: originalCsvName, rows: stats.rows,
     income: stats.income, expense: stats.expense, matched, size: dl.bytes, pageSummary,
@@ -689,11 +701,11 @@ async function runCollectFlow(tasks, rec) {
   const dateOk = stats.dateMin === JOB.from && stats.dateMax === JOB.to;
   const pageSummary = (rec && rec.pageSummary) || null;
   const matched = pageSummary ? Math.abs(stats.income - pageSummary.income) < 0.005 && Math.abs(stats.expense - pageSummary.expense) < 0.005 : null;
-  await fs.writeFile(PERIOD_DIR + "/账单信息.md", buildManifest({
+  await fs.writeFile(PERIOD_DIR + "/账单信息.md", await withPromoBlock(buildManifest({
     zipName, csvName, originalCsvName, rows: stats.rows, bad: stats.bad, income: stats.income, expense: stats.expense,
     dateMin: stats.dateMin, dateMax: stats.dateMax, dateOk, matched, pageSummary,
     applyTime: (applyTime && applyTime.text) || null,
-  }), "utf8");
+  })), "utf8");
   await upsertTask(tasks, rec, {
     status: "done", applyTime: applyTime && applyTime.text, file: zipName, csvName, sourceCsv: originalCsvName, rows: stats.rows,
     income: stats.income, expense: stats.expense, matched, size: dl.bytes, pageSummary,
